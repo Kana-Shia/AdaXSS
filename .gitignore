@@ -1,11 +1,5 @@
 .env
-.venv
-poetry.lock
-*__pycache__/
+.vscode/
+__pycache__/
 *.pyc
-*.pth
-*.png
-*.xlsx
-*.txt
-*.csv
 *.keras
