@@ -103,26 +103,32 @@ Stage 2: Adaptive Defense and Model Update
 
 ```
 .
+├── src/
+│   ├── XSS_with_TinyBERT_Training.ipynb        # Baseline ML-Rescue training
+│   ├── Gpt_XSS_Mutations_Filter.py             # Seed generation and filtering
+│   ├── Claude_XSS_Mutations_No_Ref.py
+│   ├── Claude_XSS_Mutations_Local_Ref.py
+│   ├── Claude_XSS_Mutations_Official_Ref.py
+│   ├── Group_All.py                            # PL / ML filtering + CRS audit labeling
+│   ├── Coverage_Diversity Comparison.py        # Structural diversity analysis
+│   ├── Char_Tsne.py                            # t-SNE visualization
+│   ├── XSS_with_TinyBERT_Selete_Strategy.py    # Structural distance sampling ablation
+│   ├── XSS_with_TinyBERT_Full_Training.py      # Fine-tuning with Distant 20%
+│   ├── Run_Crs_Snapshot.py                     # CRS snapshot labeling
+│   └── Run_Crs_Snapshot_Resuce.py              # CRS + ML-Rescue evaluation
+├── rule/                                       # CRS rule files (source of CRS Reference)
 ├── res/
 │   ├── train_data/
-│   │   ├── xss_dataset.csv                 # Kaggle baseline dataset
-│   │   └── successful_set_200.txt          # 200 validated seed payloads
+│   │   ├── xss_dataset.csv                     # Kaggle baseline dataset
+│   │   └── successful_set_200.txt              # 200 validated seed payloads
 │   └── claude_test_payload/
-│       ├── Claude/                         # Claude (no reference)
-│       ├── Claude_CRS_Audit_Log/           # Claude + CRS Audit Log
-│       └── Claude_CRS_Reference/           # Claude + CRS Reference
-├── XSS_with_TinyBERT_Training.ipynb        # Baseline ML-Rescue training
-├── Gpt_XSS_Mutations_Filter.py             # Seed generation and filtering
-├── Claude_XSS_Mutations_No_Ref.py
-├── Claude_XSS_Mutations_Local_Ref.py
-├── Claude_XSS_Mutations_Official_Ref.py
-├── Group_All.py                            # PL / ML filtering + CRS audit labeling
-├── Coverage_Diversity Comparison.py        # Structural diversity analysis
-├── Char_Tsne.py                            # t-SNE visualization
-├── XSS_with_TinyBERT_Selete_Strategy.py    # Structural distance sampling ablation
-├── XSS_with_TinyBERT_Full_Training.py      # Fine-tuning with Distant 20%
-├── Run_Crs_Snapshot.py                     # CRS snapshot labeling
-└── Run_Crs_Snapshot_Resuce.py              # CRS + ML-Rescue evaluation
+│       ├── Claude/                             # Claude (no reference)
+│       ├── Claude_CRS_Audit_Log/               # Claude + CRS Audit Log
+│       └── Claude_CRS_Reference/               # Claude + CRS Reference
+├── .env.example                                # API key template
+├── requirements.txt
+├── LICENSE
+└── README.md
 ```
 
 ## Requirements
@@ -152,6 +158,21 @@ pip install -r requirements.txt
 playwright install chromium
 ```
 
+**API keys**
+
+複製 `.env.example` 為 `.env` 並填入金鑰（`.env` 已列入 `.gitignore`，請勿提交）：
+
+```bash
+cp .env.example .env
+```
+
+```
+OPENAI_API_KEY=your_key_here
+ANTHROPIC_API_KEY=your_key_here
+```
+
+> 以下所有指令皆須在**專案根目錄**執行，以確保 `res/` 相對路徑正確。
+
 ## Reproducing the Experiments
 
 ### 0. ModSecurity + CRS 環境設定
@@ -173,14 +194,14 @@ SecAuditLogType Serial
 
 ### 1. 訓練 Baseline ML-Rescue
 
-執行 `XSS_with_TinyBERT_Training.ipynb`，以 `res/train_data/xss_dataset.csv`（Kaggle）訓練 TinyBERT+BiLSTM。
+執行 `src/XSS_with_TinyBERT_Training.ipynb`，以 `res/train_data/xss_dataset.csv`（Kaggle）訓練 TinyBERT+BiLSTM。
 
 - 輸出：`BestModel_TinyBERT_1.keras`
 
 ### 2. 建立 Seed Payload
 
 ```bash
-python Gpt_XSS_Mutations_Filter.py
+python src/Gpt_XSS_Mutations_Filter.py
 ```
 
 篩選可通過 Baseline 模型（ML Bypass）且能觸發 DOM（PL Trigger）之 payload。
@@ -190,9 +211,9 @@ python Gpt_XSS_Mutations_Filter.py
 ### 3. 產生 Claude 變異樣本
 
 ```bash
-python Claude_XSS_Mutations_No_Ref.py        # Claude
-python Claude_XSS_Mutations_Local_Ref.py     # Claude + CRS Audit Log
-python Claude_XSS_Mutations_Official_Ref.py  # Claude + CRS Reference
+python src/Claude_XSS_Mutations_No_Ref.py        # Claude
+python src/Claude_XSS_Mutations_Local_Ref.py     # Claude + CRS Audit Log
+python src/Claude_XSS_Mutations_Official_Ref.py  # Claude + CRS Reference
 ```
 
 | 設定 | 輸出目錄 |
@@ -206,7 +227,7 @@ python Claude_XSS_Mutations_Official_Ref.py  # Claude + CRS Reference
 完成 [步驟 0](#0-modsecurity--crs-環境設定) 後執行：
 
 ```bash
-python Group_All.py
+python src/Group_All.py
 ```
 
 對變異樣本執行 PL Trigger 與 ML Bypass 過濾，並標註 CRS Audit Log 觸發資訊。
@@ -214,14 +235,14 @@ python Group_All.py
 ### 5. 結構多樣性分析
 
 ```bash
-python "Coverage_Diversity Comparison.py"   # 各生成方法之 cluster coverage 比較
-python "Char_Tsne.py"                       # Char-TFIDF + t-SNE 二維視覺化
+python "src/Coverage_Diversity Comparison.py"   # 各生成方法之 cluster coverage 比較
+python "src/Char_Tsne.py"                       # Char-TFIDF + t-SNE 二維視覺化
 ```
 
 ### 6. 結構距離取樣消融實驗
 
 ```bash
-python XSS_with_TinyBERT_Selete_Strategy.py
+python src/XSS_with_TinyBERT_Selete_Strategy.py
 ```
 
 比較 Distant / Random / Nearest 三種取樣策略。
@@ -229,7 +250,7 @@ python XSS_with_TinyBERT_Selete_Strategy.py
 ### 7. 使用 Distant 20% 微調模型
 
 ```bash
-python XSS_with_TinyBERT_Full_Training.py
+python src/XSS_with_TinyBERT_Full_Training.py
 ```
 
 - 輸出：`BestModel_TinyBERT_1_FT_distant.keras`
@@ -238,7 +259,7 @@ python XSS_with_TinyBERT_Full_Training.py
 ### 8. 建立 CRS Snapshot
 
 ```bash
-python Run_Crs_Snapshot.py
+python src/Run_Crs_Snapshot.py
 ```
 
 對下列兩組資料各執行一次 CRS 標註：
@@ -249,7 +270,7 @@ python Run_Crs_Snapshot.py
 ### 9. 評估 CRS + ML-Rescue
 
 ```bash
-python Run_Crs_Snapshot_Resuce.py
+python src/Run_Crs_Snapshot_Resuce.py
 ```
 
 於 CRS 門檻 1 至 10 評估 Accuracy、FPR、FNR 與 F1-Score。
