@@ -16,6 +16,7 @@ AdaXSS 是一套面向 LLM 生成式 XSS 變異攻擊的適應性防禦與評估
 - [Key Results](#key-results)
 - [Repository Structure](#repository-structure)
 - [Requirements](#requirements)
+- [Quick Start](#quick-start)
 - [Reproducing the Experiments](#reproducing-the-experiments)
 - [Datasets](#datasets)
 - [Citation](#citation)
@@ -35,6 +36,11 @@ AdaXSS 採用「放寬 CRS 門檻以降低誤報，並以深度學習模型補�
 | Layer 1 | ModSecurity + OWASP CRS（以 rule count 為門檻） | 攔截已知攻擊，維持可部署性與可解釋性 |
 | Layer 2 | ML-Rescue（TinyBERT + BiLSTM） | 補救通過 CRS 的攻擊（降低漏報） |
 | Update | LLM 變異生成 + 結構距離取樣 | 以少量高價值樣本持續微調 ML-Rescue |
+
+**Terminology used in this README**
+
+- **PL Trigger**: payload 可在 Playwright 驗證流程中實際觸發 DOM sink。
+- **ML Bypass**: payload 被 Baseline ML-Rescue 判定為 benign（即成功繞過模型）。
 
 ## Key Contributions
 
@@ -131,6 +137,8 @@ Stage 2: Adaptive Defense and Model Update
 └── README.md
 ```
 
+> 註：為維持與論文實驗流程一致，部分腳本沿用原始檔名（如 `XSS_with_TinyBERT_Selete_Strategy.py`、`Run_Crs_Snapshot_Resuce.py`）。
+
 ## Requirements
 
 **Hardware (reference setup)**: Intel Core i9-10850K, 32 GB RAM, NVIDIA GeForce RTX 3060
@@ -172,6 +180,23 @@ ANTHROPIC_API_KEY=your_key_here
 ```
 
 > 以下所有指令皆須在**專案根目錄**執行，以確保 `res/` 相對路徑正確。
+
+## Quick Start
+
+1. 安裝 Python 套件與瀏覽器依賴：
+   ```bash
+   pip install -r requirements.txt
+   playwright install chromium
+   ```
+2. 建立環境變數檔：
+   ```bash
+   cp .env.example .env
+   ```
+3. 填入 `OPENAI_API_KEY` 與 `ANTHROPIC_API_KEY`。
+4. 先訓練 Baseline 模型，再產生 seed payload：
+   - `src/XSS_with_TinyBERT_Training.ipynb`
+   - `python src/Gpt_XSS_Mutations_Filter.py`
+5. 依 [Reproducing the Experiments](#reproducing-the-experiments) 逐步完成其餘流程。
 
 ## Reproducing the Experiments
 
@@ -279,7 +304,7 @@ python src/Run_Crs_Snapshot_Resuce.py
 
 | Dataset | Description | Size |
 | --- | --- | --- |
-| [Cross Site Scripting XSS Dataset for Deep Learning](https://www.kaggle.com/) (Kaggle, Syed Saqlain Hussain Shah) | Baseline，來源含 PortSwigger 與 OWASP XSS Cheat Sheet | 13,686（Benign 6,313 / Malicious 7,373） |
+| [Cross Site Scripting XSS Dataset for Deep Learning](https://www.kaggle.com/datasets/syedsaqlainhussain/cross-site-scripting-xss-dataset-for-deep-learning) (Kaggle, Syed Saqlain Hussain Shah) | Baseline，來源含 PortSwigger 與 OWASP XSS Cheat Sheet | 13,686（Benign 6,313 / Malicious 7,373） |
 | Seed payloads | GPT-4o 生成並通過 DOM 與 ML Bypass 篩選 | 200 |
 | LLM variants | Claude 於三種設定下生成，每組約 4,000 筆候選 | see paper |
 
@@ -302,7 +327,7 @@ Baseline 資料集依 9:1 隨機切分為訓練集與測試集。
 
 The source code in this repository is released under the [MIT License](LICENSE).
 
-The thesis text is © 2026 Jui-Kuan Liu (劉睿寬). All rights reserved
+The thesis text is © 2026 Jui-Kuan Liu (劉睿寬). All rights reserved.
 （本論文著作權為劉睿寬所有，並受中華民國著作權法保護）。
 
 ## Disclaimer
